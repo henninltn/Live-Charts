@@ -73,24 +73,11 @@ Task("WinForms")
         Information("-- WinForms Packed --");
     });
 
-Task("UWP")
-    .Does(() =>
-    {
-        Information("Building UWP...");        
-        BuildProject("./UwpView/UwpView.csproj", "./bin/AnyCPU", buildType, "AnyCPU");
-
-        Information("Packing UWP...");
-        NugetPack("./UwpView/UwpView.nuspec", "./UwpView/bin/AnyCPU/LiveCharts.Uwp.dll");
-
-        Information("-- UWP Packed --");
-    });
-
 Task("Default")
     .IsDependentOn("OutputArguments")
 	.IsDependentOn("Core")
     .IsDependentOn("WPF")
-    .IsDependentOn("WinForms")
-	.IsDependentOn("UWP");
+    .IsDependentOn("WinForms");
 
 //Entry point for Cake build
 RunTarget (target);
