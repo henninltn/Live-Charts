@@ -109,6 +109,13 @@ namespace LiveCharts.Wpf.Charts.Base
             DrawMargin.MouseMove += DragSection;
             DrawMargin.MouseMove += PanOnMouseMove;
             MouseUp += DisableSectionDragMouseUp;
+            
+            // for TouchEvent
+            DrawMargin.TouchDown += OnDraggingStart;
+            DrawMargin.TouchUp += OnDraggingEnd;
+            DrawMargin.TouchMove += DragSection;
+            DrawMargin.TouchMove += PanOnTouchMove;
+            TouchUp += DisableSectionDragTouchUp;
 
             Unloaded += (sender, args) =>
             {
@@ -1266,6 +1273,35 @@ namespace LiveCharts.Wpf.Charts.Base
         }
         #endregion
 
+        #region Zooming and Panning
+        private void OnDraggingStart(object sender, TouchEventArgs e)
+        {
+            if (Model == null || Model.AxisX == null || Model.AxisY == null) return;
+
+            DragOrigin = e.GetTouchPoint(this).Position;
+            IsPanning = true;
+        }
+
+        private void PanOnTouchMove(object sender, TouchEventArgs e)
+        {
+            if (!IsPanning) return;
+
+            if (Pan == PanningOptions.Unset && Zoom == ZoomingOptions.None ||
+                Pan == PanningOptions.None) return;
+
+            var end = e.GetTouchPoint(this).Position;
+
+            Model.Drag(new CorePoint(DragOrigin.X - end.X, DragOrigin.Y - end.Y));
+            DragOrigin = end;
+        }
+
+        private void OnDraggingEnd(object sender, TouchEventArgs e)
+        {
+            if (!IsPanning) return;
+            IsPanning = false;
+        }
+        #endregion
+
         #region ScrollBar functionality
         private bool _isDragging;
         private Point _previous;
@@ -1410,6 +1446,44 @@ namespace LiveCharts.Wpf.Charts.Base
         }
 
         private void DisableSectionDragMouseUp(object sender, MouseButtonEventArgs mouseButtonEventArgs)
+        {
+            AxisSection.Dragging = null;
+        }
+        #endregion
+
+        #region Dragging Sections
+        private void DragSection(object sender, TouchEventArgs e)
+        {
+            var ax = AxisSection.Dragging;
+
+            if (ax == null) return;
+
+            if (Ldsp == null)
+            {
+                Ldsp = e.GetTouchPoint(this).Position;
+                return;
+            }
+
+            var p = e.GetTouchPoint(this).Position;
+            double delta;
+
+            if (ax.Model.Source == AxisOrientation.X)
+            {
+                delta = this.ConvertToChartValues(new Point(Ldsp.Value.X, 0), ax.Model.AxisIndex).X -
+                        this.ConvertToChartValues(new Point(p.X, 0), ax.Model.AxisIndex).X;
+                Ldsp = p;
+                ax.Value -= delta;
+            }
+            else
+            {
+                delta = this.ConvertToChartValues(new Point(0, Ldsp.Value.Y), 0, ax.Model.AxisIndex).Y -
+                        this.ConvertToChartValues(new Point(0, p.Y), 0, ax.Model.AxisIndex).Y;
+                Ldsp = p;
+                ax.Value -= delta;
+            }
+        }
+
+        private void DisableSectionDragTouchUp(object sender, TouchEventArgs touchEventArgs)
         {
             AxisSection.Dragging = null;
         }
